@@ -1,0 +1,42 @@
+plugins {
+    id 'java'
+    id 'net.minecraftforge.gradle' version '5.1.+'
+}
+
+group = 'com.example'
+version = '1.0.0'
+archivesBaseName = 'minebot'
+
+java {
+    toolchain { languageVersion = JavaLanguageVersion.of(17) }
+}
+
+minecraft {
+    mappings channel: 'official', version: '1.20.1'
+    runs {
+        client {
+            workingDirectory project.file('run')
+            property 'forge.logging.markers', 'REGISTRIES'
+            property 'forge.logging.console.level', 'debug'
+            mods { minebot { source sourceSets.main } }
+        }
+    }
+}
+
+repositories {
+    maven { url = 'https://maven.minecraftforge.net' }
+    mavenCentral()
+}
+
+dependencies {
+    minecraft 'net.minecraftforge:forge:1.20.1-47.1.44'
+    // どちらか一方を使用する:
+    // 1) JitPack（バーションはBaritoneの最新に合わせて変更）
+    //implementation 'com.github.cabaletta:baritone:master-SNAPSHOT'
+    // 2) もしくは Release の API Jar を libs/ に置いた場合:
+    implementation files('lib/baritone-api-forge-1.10.3.jar')
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
