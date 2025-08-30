@@ -6,9 +6,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.level.Level;
 import net.minecraft.world.level.levelgen.Heightmap;
-import net.minecraft.core.BlockPos;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.client.event.ClientChatReceivedEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -26,7 +24,7 @@ public class MineBotMod {
 
     public MineBotMod() {}
 
-    @Mod.EventBusSubscriber(modid = "minebot", value = Dist.CLIENT, bus = Mod.EventBusSubscriber.Bus.FORGE)
+    @Mod.EventBusSubscriber(modid = ModConstants.MODID, value = Dist.CLIENT, bus = Mod.EventBusSubscriber.Bus.FORGE)
     public static class ClientEvents {
 
         @SubscribeEvent
@@ -45,15 +43,10 @@ public class MineBotMod {
             // 発言者のプレイヤーEntityを探す
             Optional<Player> speakerOpt = level.players().stream()
                     .filter(p -> p.getName().getString().equals(who))
-                    .map(p -> (Player) p)
                     .findFirst();
 
             if (speakerOpt.isEmpty()) return;
             Player speaker = speakerOpt.get();
-
-            double playerY = speaker.getY();
-            // 基準Y = 発言者のいまの高さ
-            int topY = (int)Math.floor(speaker.getY());
 
             // 発言者の現在チャンク
             int chunkX = speaker.chunkPosition().x;
@@ -65,24 +58,21 @@ public class MineBotMod {
             int x1 = x0 + 15;
             int z1 = z0 + 15;
 
-            // 地表Y（上面）を代表点で取得（中央柱で算出：より厳密にやるなら全域の最大をとっても可）
+            // チャンク中央の高さを取得
             int cx = x0 + 8;
             int cz = z0 + 8;
+            int surfaceY = level.getHeight(Heightmap.Types.MOTION_BLOCKING, cx, cz);
 
             // 10層（surfaceY 〜 surfaceY-9）を掘削対象に
             int depth = 10;
+            int bottomY = Math.max(surfaceY - depth + 1, level.getMinBuildHeight());
 
             // Baritone コマンドを組み立て・実行
             ICommandManager cmd = BaritoneAPI.getProvider().getPrimaryBaritone().getCommandManager();
 
-            int minY = speaker.level().getMinBuildHeight();            // -64（1.20.1の既定）
-            int maxY = speaker.level().getMaxBuildHeight() - 1;        // 319
-
             cmd.execute("sel clear");
-            cmd.execute(String.format("sel 1 %d %d %d", x0, topY, z0));
-            cmd.execute(String.format("sel 2 %d %d %d", x1, topY, z1));
-            cmd.execute(String.format("sel expand a down %d", topY - minY));
-            cmd.execute(String.format("sel expand a up %d",   maxY - topY));
+            cmd.execute(String.format("sel 1 %d %d %d", x0, surfaceY, z0));
+            cmd.execute(String.format("sel 2 %d %d %d", x1, bottomY, z1));
             cmd.execute("set buildInLayers true");
             cmd.execute("set layerOrder true");
             cmd.execute("sel ca");
